@@ -17,4 +17,10 @@ func main() {
 		}
 		println(s, ":width=", w, ",height=", h)
 	}
+	w, h, err := consolefontpixel.GetFontSize()
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	println("font width=", w, " height=", h)
 }

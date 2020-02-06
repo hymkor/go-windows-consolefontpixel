@@ -62,6 +62,29 @@ func getConsoleWindow() (uintptr, error) {
 	return hWnd, nil
 }
 
+func getCurrentConsoleFontEx(hConsoleOutput uintptr, maxWindows bool) (int, int, error) {
+	var buffer struct {
+		cbSize     uint32              // ULONG
+		nFont      uint32              // DWORD
+		dwFontSize windows.Coord       // COORD
+		FontFamily uint                // UINT
+		FontWeight uint                // UINT
+		FaceName   [LF_FACESIZE]uint16 // WCHAR
+	}
+	var b uintptr = 0
+	if maxWindows {
+		b = 1
+	}
+	buffer.cbSize = uint32(unsafe.Sizeof(buffer))
+
+	rc, _, err := procGetCurrentConsoleFontEx.Call(hConsoleOutput, b,
+		uintptr(unsafe.Pointer(&buffer)))
+	if rc == 0 {
+		return 0, 0, err
+	}
+	return int(buffer.dwFontSize.X), int(buffer.dwFontSize.Y), nil
+}
+
 func GetPixelSize(s string) (int, int, error) {
 	hWnd, err := getConsoleWindow()
 	if err != nil {
@@ -77,4 +100,8 @@ func GetPixelSize(s string) (int, int, error) {
 		return -1, -1, err
 	}
 	return w, h, nil
+}
+
+func GetFontSize() (int, int, error) {
+	return getCurrentConsoleFontEx(uintptr(windows.Stdout), false)
 }
