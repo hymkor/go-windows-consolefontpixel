@@ -2,6 +2,7 @@ package consolefontpixel
 
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -85,23 +86,49 @@ func getCurrentConsoleFontEx(hConsoleOutput uintptr, maxWindows bool) (int, int,
 	return int(buffer.dwFontSize.X), int(buffer.dwFontSize.Y), nil
 }
 
-func GetPixelSize(s string) (int, int, error) {
+type DC struct {
+	hWnd uintptr
+	hDc  uintptr
+}
+
+func OpenDC() (*DC, error) {
 	hWnd, err := getConsoleWindow()
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	hDc, err := getDc(hWnd)
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
-	defer releaseDc(hWnd, hDc)
-	w, h, err := getTextExtentPoint32(hDc, s)
+	return &DC{hWnd: hWnd, hDc: hDc}, nil
+}
+
+func (dc *DC) Close() {
+	releaseDc(dc.hWnd, dc.hDc)
+}
+
+func (dc *DC) GetTextExtentPoint(s string) (int, int, error) {
+	w, h, err := getTextExtentPoint32(dc.hDc, s)
 	if err != nil {
-		return -1, -1, err
+		return -1, -1, fmt.Errorf("GetTextExtentPoint: %w", err)
 	}
 	return w, h, nil
 }
 
-func GetFontSize() (int, int, error) {
-	return getCurrentConsoleFontEx(uintptr(windows.Stdout), false)
+func GetTextExtentPoint(s string) (int, int, error) {
+	dc, err := OpenDC()
+	if err != nil {
+		return -1, -1, err
+	}
+	defer dc.Close()
+
+	return dc.GetTextExtentPoint(s)
+}
+
+func GetCurrentConsoleFont() (int, int, error) {
+	w, h, err := getCurrentConsoleFontEx(uintptr(windows.Stdout), false)
+	if err != nil {
+		return w, h, fmt.Errorf("GetCurrentConsoleFont: %w", err)
+	}
+	return w, h, nil
 }
