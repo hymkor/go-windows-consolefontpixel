@@ -22,11 +22,6 @@ func main1() error {
 		}
 		println(s, ":width=", w, ",height=", h)
 	}
-	w, h, err := consolefontpixel.GetCurrentConsoleFont()
-	if err != nil {
-		return err
-	}
-	println("font width=", w, " height=", h)
 	return nil
 }
 
